@@ -1,70 +1,3 @@
-// import {Server} from "socket.io";
-// const io = new Server(3000);
-
-// io.on("connection", (socket) => {
-//     console.log("Connection established");  
-
-//     socket.on("test", (data) => {
-//         console.log(data);
-        
-//         var test = {text: "Hi"};
-//         socket.emit("hi", test);
-//     });
-
-//     socket.on("disconnect", data => {
-//         console.log("Connection closed");
-//     });
-
-// });
-
-// console.log("Server running on port 3000");
-
-// import { Server } from "socket.io";
-// const io = new Server(3000);
-
-// let players = [];
-
-// io.on("connection", (socket) => {
-//     console.log("Connection established:");
-
-//     // Assign player roles dynamically
-//     socket.on("requestRole", () => {
-//         let assignedRole;
-
-//         const leftExists = players.some(player => player.role === "left");
-
-//         if (!leftExists) {
-//             assignedRole = "left";
-//         } else {
-//             assignedRole = "right";
-//         }
-
-//         players.push({ id: socket.id, role: assignedRole });
-
-//         console.log(`Player ${socket.id} assigned as ${assignedRole}`);
-//         socket.emit("assignRole", assignedRole);
-//         console.log(players);
-
-//         io.emit("updatePlayers", players);
-//     });
-
-//     // Handle paddle spawning
-//     socket.on("spawnPaddle", (role) => {
-//         console.log(`Paddle spawned for ${role} player`);
-
-//         // Broadcast paddle spawn to all players
-//         io.emit("spawnPaddle", players);
-//     });
-
-//     // Handle player disconnect
-//     socket.on("disconnect", () => {
-//         players = players.filter(player => player.id !== socket.id);
-//         console.log(`Player ${socket.id} disconnected`);
-//     });
-// });
-
-// console.log("Server running on port 3000");
-
 import { Server } from "socket.io";
 import chalk from "chalk";
 const io = new Server(3000);
@@ -137,20 +70,32 @@ io.on("connection", (socket) => {
         }
     });
 
-
+    socket.on("hideStartText", () => {
+        io.emit("hideStartText"); // Sends event to all players
+    });
+    
     socket.on("updateScore", (data) => {
-        scores.left = data.left;
-        scores.right = data.right;
-        console.log(chalk.yellow(`Score Update - Left: ${scores.left}, Right: ${scores.right}`));
-        io.emit("updateScore", scores);
-        
-        // Check win condition
-        if (scores.left >= 10) {
-            io.emit("gameOver", { winner: "left" });
-        } else if (scores.right >= 10) {
-            io.emit("gameOver", { winner: "right" });
+        if (socket.id === ballOwner) { // 🟢 Only Ball Owner sends score updates
+            scores.left = data.left;
+            scores.right = data.right;
+    
+            console.log(chalk.yellow(`Score Update - Left: ${scores.left}, Right: ${scores.right}`));
+    
+            io.emit("updateScore", scores);
+    
+            // Check win condition
+            if (scores.left >= 3) {
+                io.emit("gameOver", { winner: "left" });
+                console.log(chalk.bgRedBright("Game Over - Left player wins"));
+            } else if (scores.right >= 3) {
+                io.emit("gameOver", { winner: "right" });
+                console.log(chalk.bgRedBright("Game Over - Right player wins"));
+            }
+        } else {
+            console.log(chalk.grey("Ignored duplicate updateScore request from non-owner"));
         }
     });
+    
 
 
     // Handle player disconnect
