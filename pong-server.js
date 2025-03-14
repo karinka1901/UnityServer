@@ -34,6 +34,21 @@ io.on("connection", (socket) => {
     //    io.emit("updatePlayers", players);
     });
 
+    socket.on("playerNameAssigned", (data) => {
+        if (!data.role || !data.name) {
+            console.log(chalk.red("Invalid player data received for name assignment!"));
+            return;
+        }
+    
+        players[socket.id] = { role: data.role, name: data.name };
+    
+        console.log(chalk.blue(`Player assigned: ${data.role} - ${data.name}`));
+    
+        // Send back to all clients without unnecessary array wrapping
+        io.emit("playerNameAssigned", { role: data.role, name: data.name });
+    });
+    
+    
     //BALL LOGIC
     socket.on("spawnBall", () => {
         console.log(chalk.bold("Ball spawned"));
@@ -75,7 +90,7 @@ io.on("connection", (socket) => {
     });
     
     socket.on("updateScore", (data) => {
-        if (socket.id === ballOwner) { // 🟢 Only Ball Owner sends score updates
+        if (socket.id === ballOwner) { 
             scores.left = data.left;
             scores.right = data.right;
     
@@ -83,7 +98,7 @@ io.on("connection", (socket) => {
     
             io.emit("updateScore", scores);
     
-            // Check win condition
+            // win condition
             if (scores.left >= 3) {
                 io.emit("gameOver", { winner: "left" });
                 console.log(chalk.bgRedBright("Game Over - Left player wins"));
@@ -96,8 +111,6 @@ io.on("connection", (socket) => {
         }
     });
     
-
-
     // Handle player disconnect
     socket.on("disconnect", () => {
         console.log(`Player ${socket.id} disconnected`);

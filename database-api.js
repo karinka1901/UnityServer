@@ -1,6 +1,7 @@
-const express = require('express');
-const mysql = require('mysql');
-const cors = require('cors');
+import chalk from "chalk";
+import express from "express";
+import mysql from "mysql";
+import cors from "cors";
 
 const app = express();
 app.use(cors());
@@ -21,41 +22,37 @@ db.connect(err => {
         console.error('Database connection failed:', err.stack);
         return;
     }
-    console.log('Connected to MySQL Database');
+    console.log(chalk.bgBlueBright('Connected to MySQL Database'));
 });
 
-// Fetch Player Data
-app.get('/api/player/:id', (req, res) => {
-    const playerId = req.params.id;
-    db.query("SELECT * FROM players WHERE id = ?", [playerId], (err, result) => {
-        if (err) return res.status(500).json({ error: err.message });
-        if (result.length === 0) return res.status(404).json({ error: "Player not found" });
-        res.json(result[0]);
-    });
-});
+// Add New Player
+app.post('/api/add-player', (req, res) => {
+    const { playerName } = req.body;
+    console.log(chalk.bgGreenBright(`Adding player: ${playerName}`));
 
-// Update Player Score
-app.post('/api/update-score', (req, res) => {
-    const { id, score } = req.body;
-    if (!id || score === undefined) {
-        return res.status(400).json({ error: "Missing player ID or score" });
+    if (!playerName) {
+        return res.status(400).json({ error: "Missing player name" });
     }
-    
-    db.query("UPDATE players SET score = ? WHERE id = ?", [score, id], (err, result) => {
+
+    // Check if the player already exists
+    db.query("SELECT * FROM players WHERE name = ?", [playerName], (err, result) => {
         if (err) return res.status(500).json({ error: err.message });
-        res.json({ message: "✅ Score updated!", playerId: id, newScore: score });
+
+        if (result.length > 0) {
+            return res.json({ message: "Player already exists!", playerId: result[0].id });
+        }
+
+        // Insert new player
+        db.query("INSERT INTO players (name, score) VALUES (?, 0)", [playerName], (err, result) => {
+            if (err) return res.status(500).json({ error: err.message });
+            res.json({ message: "Player added!", playerId: result.insertId });
+        });
     });
 });
 
-// 🏅 **Fetch Leaderboard (Top 5 Players)**
-app.get('/api/leaderboard', (req, res) => {
-    db.query("SELECT * FROM players ORDER BY score DESC LIMIT 5", (err, results) => {
-        if (err) return res.status(500).json({ error: err.message });
-        res.json(results);
-    });
-});
 
-// 🚀 Start Server
+
+//  Start Server
 app.listen(port, () => {
-    console.log(`📊 MySQL API running on port ${port}`);
+    console.log(`MySQL API running on port ${port}`);
 });
