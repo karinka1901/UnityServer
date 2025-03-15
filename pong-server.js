@@ -1,6 +1,8 @@
 import { Server } from "socket.io";
 import chalk from "chalk";
 const io = new Server(3000);
+//const db = require("./database-api");
+
 
 let players = [];
 let paddles = [];

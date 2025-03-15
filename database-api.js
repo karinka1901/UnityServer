@@ -9,6 +9,12 @@ app.use(cors());
 app.use(express.urlencoded({ extended: true })); 
 app.use(express.json()); 
 
+// export default {
+//     connectToDatabase: function() {
+//         console.log("Database API Loaded and Connected!");
+//     }
+// };
+
 const port = process.env.PORT || 5000;
 
 // MySQL Database Connection
