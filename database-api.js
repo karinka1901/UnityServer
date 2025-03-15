@@ -1,58 +1,94 @@
-import chalk from "chalk";
 import express from "express";
 import mysql from "mysql";
 import cors from "cors";
+import chalk from "chalk";
 
 const app = express();
 app.use(cors());
-app.use(express.json());
+
+app.use(express.urlencoded({ extended: true })); 
+app.use(express.json()); 
 
 const port = process.env.PORT || 5000;
 
 // MySQL Database Connection
 const db = mysql.createConnection({
     host: 'localhost',
-    user: 'root',  
-    password: '', 
+    user: 'root',
+    password: '',
     database: 'ponggame'
 });
 
 db.connect(err => {
     if (err) {
-        console.error('Database connection failed:', err.stack);
+        console.error(chalk.red('Database connection failed:', err.stack));
         return;
     }
-    console.log(chalk.bgBlueBright('Connected to MySQL Database'));
+    console.log(chalk.bgBlue('Connected to MySQL Database'));
 });
 
-// Add New Player
-app.post('/api/add-player', (req, res) => {
-    const { playerName } = req.body;
-    console.log(chalk.bgGreenBright(`Adding player: ${playerName}`));
+// Adding/Updating Players and Scores
+app.post('/api/update-score', (req, res) => {
+    console.log("Received POST request:", req.body); 
 
-    if (!playerName) {
-        return res.status(400).json({ error: "Missing player name" });
+    const username = req.body.playerName; // playerName from Unity
+    const score = parseInt(req.body.score, 10) / 2; // score from Unity
+
+    if (!username || isNaN(score)) {
+        console.log(chalk.red("Error: Missing username or invalid score"));
+        return res.status(400).json({ error: "Missing username or invalid score" });
     }
 
-    // Check if the player already exists
-    db.query("SELECT * FROM players WHERE name = ?", [playerName], (err, result) => {
-        if (err) return res.status(500).json({ error: err.message });
-
-        if (result.length > 0) {
-            return res.json({ message: "Player already exists!", playerId: result[0].id });
+    // Check if player exists in the database
+    db.query("SELECT * FROM players WHERE username = ?", [username], (err, result) => {
+        if (err) {
+            console.error("Database SELECT error:", err);
+            return res.status(500).json({ error: err.message });
         }
 
-        // Insert new player
-        db.query("INSERT INTO players (name, score) VALUES (?, 0)", [playerName], (err, result) => {
-            if (err) return res.status(500).json({ error: err.message });
-            res.json({ message: "Player added!", playerId: result.insertId });
-        });
+        if (result.length > 0) {
+            // Player exists, update their score
+            db.query(
+                "UPDATE players SET score = COALESCE(score, 0) + ? WHERE username = ?",
+                [score, username],
+                (err, updateResult) => {
+                    if (err) {
+                        console.error("Database UPDATE error:", err);
+                        return res.status(500).json({ error: err.message });
+                    }
+                    res.json({ message: "Score updated!", playerId: result[0].id, updatedScore: score });
+                }
+            );
+        } else {
+            // Player does not exist, insert with initial score
+            db.query(
+                "INSERT INTO players (username, score) VALUES (?, ?)",
+                [username, score],
+                (err, insertResult) => {
+                    if (err) {
+                        console.error("Database INSERT error:", err);
+                        return res.status(500).json({ error: err.message });
+                    }
+                    res.json({ message: "Player added!", playerId: insertResult.insertId, initialScore: score });
+                }
+            );
+        }
+    });
+});
+
+// fetch top 10 players with highest scores
+app.get('/api/top-scores', (req, res) => {
+    db.query("SELECT username, score FROM players ORDER BY score DESC LIMIT 10", (err, result) => {
+        if (err) {
+            console.error("Database SELECT error:", err);
+            return res.status(500).json({ error: err.message });
+        }
+        res.json(result); 
     });
 });
 
 
-
-//  Start Server
+// Start Server
 app.listen(port, () => {
-    console.log(`MySQL API running on port ${port}`);
+    console.log(chalk.blue(`Server running on port ${port}`));
 });

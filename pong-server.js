@@ -48,6 +48,9 @@ io.on("connection", (socket) => {
         io.emit("playerNameAssigned", { role: data.role, name: data.name });
     });
     
+    socket.on("gameStart", () => {
+        io.emit("gameStart"); // Notify all players
+    });
     
     //BALL LOGIC
     socket.on("spawnBall", () => {
