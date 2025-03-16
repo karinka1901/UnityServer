@@ -84,7 +84,7 @@ app.post('/api/update-score', (req, res) => {
 
 // fetch top 10 players with highest scores
 app.get('/api/top-scores', (req, res) => {
-    db.query("SELECT username, score FROM players ORDER BY score DESC LIMIT 10", (err, result) => {
+    db.query("SELECT username, score FROM players ORDER BY score DESC LIMIT 5", (err, result) => {
         if (err) {
             console.error("Database SELECT error:", err);
             return res.status(500).json({ error: err.message });
