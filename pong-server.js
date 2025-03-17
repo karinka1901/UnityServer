@@ -122,12 +122,11 @@ io.on("connection", (socket) => {
         if (socket.id === ballOwner) {
             ballOwner = null; // Reset ball ownership
         }
-        // Remove player and their paddle from the arrays
+        // Remove player from the array
         players = players.filter(player => player.id !== socket.id);
      //   paddles = paddles.filter(p => p.paddle !== player.role);
 
-        io.emit("updatePlayers", players);
-      //  io.emit("spawnedPaddle", paddles);
+        io.emit("disconnected");
     });
 });
 
